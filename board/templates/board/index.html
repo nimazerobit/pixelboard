@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پیکسل بورد</title>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+    <link rel="stylesheet" href="{% static 'global.css' %}">
+    <link rel="stylesheet" href="{% static 'board.css' %}">
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="auth-card board-section">
+            <button class="theme-toggle" id="themeToggleBtn">
+                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" />
+                    <path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" />
+                    <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
+                </svg>
+            </button>
+
+            <div class="canvas-wrapper">
+                <canvas id="canvas" width="500" height="500"></canvas>
+            </div>
+            <div class="controls">
+                <input type="color" id="color-picker" value="#4f46e5" title="انتخاب رنگ">
+                <span id="error-msg"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="auth-card auth-status">
+                <h3>حساب کاربری</h3>
+                {% if user.is_authenticated %}
+                <p>وارد شده به عنوان: <strong>{{ user.username }}</strong></p>
+                <p>زمان انتظار: <strong>{% if user.is_staff %}بدون محدودیت (مدیر){% else %}۱ ثانیه{% endif %}</strong>
+                </p>
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="width: 100%;">خروج از حساب</button>
+                </form>
+                {% else %}
+                <p><strong>کاربر مهمان</strong></p>
+                <p>زمان انتظار: <strong>۵ ثانیه</strong></p>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <a href="{% url 'login' %}" class="btn" style="flex: 1; text-align: center;">ورود</a>
+                    <a href="{% url 'register' %}" class="btn"
+                        style="flex: 1; text-align: center; background: var(--text-muted);">ثبت‌نام</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="auth-card chat-container">
+                <h3>گفتگوی زنده</h3>
+                <div id="chat-box" class="chat-box"></div>
+
+                {% if user.is_authenticated %}
+                <div class="chat-input-group">
+                    <input type="text" id="chat-input" placeholder="پیامی بنویسید..." autocomplete="off">
+                    <button id="chat-send" class="btn">ارسال</button>
+                </div>
+                {% else %}
+                <p class="notice" style="text-align: center; margin: 0;">برای شرکت در گفتگو باید وارد حساب شوید.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const PIXEL_SIZE = 10;
+        const GRID_OPACITY_LIGHT = 'rgba(0, 0, 0, 0.05)';
+        const GRID_OPACITY_DARK = 'rgba(255, 255, 255, 0.04)';
+
+        const boardSocket = new WebSocket('ws://' + window.location.host + '/ws/board/');
+        const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/');
+
+        function drawGrid() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            ctx.strokeStyle = isDark ? GRID_OPACITY_DARK : GRID_OPACITY_LIGHT;
+            ctx.lineWidth = 0.5;
+
+            // Vertical lines
+            for (let x = 0; x <= canvas.width; x += PIXEL_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            // Horizontal lines
+            for (let y = 0; y <= canvas.height; y += PIXEL_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        // Keep local cache of loaded pixels to redraw properly with grid lines
+        let pixelMap = {};
+
+        function paintPixel(x, y, color) {
+            pixelMap[`${x},${y}`] = color;
+            ctx.fillStyle = color;
+            ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+
+            // Re-draw grid lines on top of the newly painted pixel
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            ctx.strokeStyle = isDark ? GRID_OPACITY_DARK : GRID_OPACITY_LIGHT;
+            ctx.strokeRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+        }
+
+        boardSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            if (data.action === 'init') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                data.pixels.forEach(p => {
+                    paintPixel(p.x, p.y, p.color);
+                });
+                drawGrid();
+            } else if (data.error) {
+                document.getElementById('error-msg').innerText = data.error;
+                setTimeout(() => { document.getElementById('error-msg').innerText = ''; }, 3000);
+            } else if (data.action === 'paint') {
+                paintPixel(data.x, data.y, data.color);
+            }
+        };
+
+        // Standard coordinate retrieval
+        function handlePaintClick(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            // Scale points based on actual viewport size vs canvas attributes
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const x = Math.floor(((clientX - rect.left) * scaleX) / PIXEL_SIZE);
+            const y = Math.floor(((clientY - rect.top) * scaleY) / PIXEL_SIZE);
+            const color = document.getElementById('color-picker').value;
+
+            if (x >= 0 && x < (canvas.width / PIXEL_SIZE) && y >= 0 && y < (canvas.height / PIXEL_SIZE)) {
+                boardSocket.send(JSON.stringify({ 'action': 'paint', 'x': x, 'y': y, 'color': color }));
+            }
+        }
+
+        // Mouse Painting Event
+        canvas.addEventListener('click', function (e) {
+            handlePaintClick(e.clientX, e.clientY);
+        });
+
+        // Responsive Touch Screen Painting Events
+        canvas.addEventListener('touchstart', function (e) {
+            if (e.touches.length === 1) {
+                handlePaintClick(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Chat handling
+        const chatBox = document.getElementById('chat-box');
+
+        function appendChatMessage(username, message) {
+            const newMsg = document.createElement('div');
+            newMsg.className = 'chat-message';
+            newMsg.innerHTML = `<strong>${username}:</strong> ${message}`;
+            chatBox.appendChild(newMsg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            if (data.action === 'init') {
+                chatBox.innerHTML = ''; // Clear prior elements
+                data.chats.forEach(c => appendChatMessage(c.username, c.message));
+            } else if (data.error) {
+                alert(data.error);
+            } else if (data.action === 'chat') {
+                appendChatMessage(data.username, data.message);
+            }
+        };
+
+        const chatInput = document.getElementById('chat-input');
+        const chatSend = document.getElementById('chat-send');
+
+        function sendChat() {
+            if (!chatInput) return;
+            const message = chatInput.value.trim();
+            if (message) {
+                chatSocket.send(JSON.stringify({ 'action': 'chat', 'message': message }));
+                chatInput.value = '';
+            }
+        }
+
+        if (chatSend) chatSend.onclick = sendChat;
+        if (chatInput) {
+            chatInput.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    sendChat();
+                }
+            });
+        }
+
+        // Live theme controller
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            // Repaint board dynamically to shift grid theme
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            Object.keys(pixelMap).forEach(key => {
+                const [x, y] = key.split(',').map(Number);
+                paintPixel(x, y, pixelMap[key]);
+            });
+            drawGrid();
+        });
+    </script>
+</body>
+
+</html>

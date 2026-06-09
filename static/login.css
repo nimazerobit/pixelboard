@@ -1,0 +1,14 @@
+.auth-card {
+    max-width: 360px;
+}
+
+.messages {
+    background: var(--danger-bg);
+    color: var(--danger);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    list-style: none;
+    font-size: 0.85rem;
+    padding-right: 24px;
+}

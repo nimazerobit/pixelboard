@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap');
+
+:root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg-color: #fafafa;
+    --surface: #ffffff;
+    --border: #e4e4e7;
+    --border-focus: #a5b4fc;
+    --text-main: #18181b;
+    --text-muted: #71717a;
+    --danger: #ef4444;
+    --danger-bg: #fef2f2;
+    --input-bg: #fcfcfd;
+    --toggle-hover: #f4f4f5;
+}
+
+[data-theme="dark"] {
+    --bg-color: #09090b;
+    --surface: #18181b;
+    --border: #27272a;
+    --border-focus: #4f46e5;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --danger: #f87171;
+    --danger-bg: #2d1313;
+    --input-bg: #202023;
+    --toggle-hover: #27272a;
+}
+
+body {
+    font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.auth-card {
+    background: var(--surface);
+    padding: 40px 32px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.theme-toggle:hover {
+    background-color: var(--toggle-hover);
+    color: var(--text-main);
+}
+
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Hide inactive theme icon */
+[data-theme="dark"] .theme-toggle .sun-icon,
+html:not([data-theme="dark"]) .theme-toggle .moon-icon {
+    display: none;
+}
+
+h2 {
+    margin-top: 10px;
+    margin-bottom: 24px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-sizing: border-box;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    transition: all 0.2s ease;
+    background-color: var(--input-bg);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+    border-color: var(--border-focus);
+    background-color: var(--surface);
+    box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.15);
+}
+
+.btn {
+    width: 100%;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    margin-top: 8px;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.links {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+}
+
+.links a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.links a:hover {
+    text-decoration: underline;
+}
