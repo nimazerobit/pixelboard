@@ -7,6 +7,9 @@ const GRID_OPACITY_DARK = 'rgba(255, 255, 255, 0.04)';
 const boardSocket = new WebSocket('ws://' + window.location.host + '/ws/board/');
 const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/');
 
+let pixelMap = {};
+let hoverPixel = null;
+
 function drawGrid() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     ctx.strokeStyle = isDark ? GRID_OPACITY_DARK : GRID_OPACITY_LIGHT;
@@ -26,8 +29,6 @@ function drawGrid() {
     }
 }
 
-let pixelMap = {};
-
 function paintPixel(x, y, color) {
     pixelMap[`${x},${y}`] = color;
     ctx.fillStyle = color;
@@ -36,6 +37,26 @@ function paintPixel(x, y, color) {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     ctx.strokeStyle = isDark ? GRID_OPACITY_DARK : GRID_OPACITY_LIGHT;
     ctx.strokeRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+}
+
+function drawHoverPixel(x, y) {
+    redrawAll();
+
+    const drawX = x * PIXEL_SIZE;
+    const drawY = y * PIXEL_SIZE;
+
+    const hex = document.getElementById('color-picker').value;
+
+    const r = parseInt(hex.substr(1, 2), 16);
+    const g = parseInt(hex.substr(3, 2), 16);
+    const b = parseInt(hex.substr(5, 2), 16);
+    const strokeColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = strokeColor;
+    ctx.strokeRect(drawX + 1, drawY + 1, PIXEL_SIZE - 2, PIXEL_SIZE - 2);
+    ctx.restore();
 }
 
 function redrawAll() {
@@ -89,6 +110,32 @@ canvas.addEventListener('touchstart', function (e) {
         e.preventDefault();
     }
 }, { passive: false });
+
+canvas.addEventListener('mousemove', function (e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = Math.floor(((e.clientX - rect.left) * scaleX) / PIXEL_SIZE);
+    const y = Math.floor(((e.clientY - rect.top) * scaleY) / PIXEL_SIZE);
+
+    if (x >= 0 && x < (canvas.width / PIXEL_SIZE) && y >= 0 && y < (canvas.height / PIXEL_SIZE)) {
+        if (!hoverPixel || hoverPixel.x !== x || hoverPixel.y !== y) {
+            hoverPixel = { x, y };
+            drawHoverPixel(x, y);
+        }
+    } else if (hoverPixel) {
+        hoverPixel = null;
+        redrawAll();
+    }
+});
+
+canvas.addEventListener('mouseleave', function () {
+    if (hoverPixel) {
+        hoverPixel = null;
+        redrawAll();
+    }
+});
 
 const chatBox = document.getElementById('chat-box');
 
