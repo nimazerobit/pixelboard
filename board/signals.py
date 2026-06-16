@@ -10,9 +10,8 @@ def pixel_deleted(sender, instance, **kwargs):
     async_to_sync(channel_layer.group_send)(
         "board",
         {
-            "type": "pixel_update",
+            "type": "pixel_delete",
             "x": instance.x,
             "y": instance.y,
-            "color": "#FFFFFF", 
         }
     )

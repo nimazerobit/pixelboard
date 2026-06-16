@@ -23,6 +23,8 @@ let panStart = { x: 0, y: 0 };
 let hasMoved = false;
 const DRAG_THRESHOLD = 5;
 
+let isErasing = false;
+
 canvas.style.transformOrigin = '0 0';
 canvas.style.imageRendering = 'pixelated';
 canvas.style.setProperty('-ms-interpolation-mode', 'nearest-neighbor');
@@ -38,6 +40,31 @@ function applyTransform() {
 
     canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
     document.getElementById('zoom-level').innerText = `${Math.round(zoom * 100)}%`;
+}
+
+const eraserBtn = document.getElementById('eraser-btn');
+if (eraserBtn) {
+    eraserBtn.addEventListener('click', () => {
+        isErasing = !isErasing;
+        if (isErasing) {
+            eraserBtn.style.backgroundColor = 'var(--primary-color)';
+            eraserBtn.style.color = '#fff';
+        } else {
+            eraserBtn.style.backgroundColor = 'transparent';
+            eraserBtn.style.color = 'var(--text-main)';
+        }
+    });
+}
+
+const colorPicker = document.getElementById('color-picker');
+if (colorPicker) {
+    colorPicker.addEventListener('input', () => {
+        isErasing = false;
+        if (eraserBtn) {
+            eraserBtn.style.backgroundColor = 'transparent';
+            eraserBtn.style.color = 'var(--text-main)';
+        }
+    });
 }
 
 document.getElementById('zoom-in').addEventListener('click', () => {
@@ -128,6 +155,9 @@ boardSocket.onmessage = function (e) {
         setTimeout(() => { document.getElementById('error-msg').innerText = ''; }, 3000);
     } else if (data.action === 'paint') {
         paintPixel(data.x, data.y, data.color);
+    } else if (data.action === 'delete') {
+        delete pixelMap[`${data.x},${data.y}`];
+        redrawAll();
     }
 };
 
@@ -141,7 +171,11 @@ function handlePaintClick(clientX, clientY) {
     const color = document.getElementById('color-picker').value;
 
     if (x >= 0 && x < (canvas.width / PIXEL_SIZE) && y >= 0 && y < (canvas.height / PIXEL_SIZE)) {
-        boardSocket.send(JSON.stringify({ 'action': 'paint', 'x': x, 'y': y, 'color': color }));
+        if (isErasing) {
+            boardSocket.send(JSON.stringify({ 'action': 'erase', 'x': x, 'y': y }));
+        } else {
+            boardSocket.send(JSON.stringify({ 'action': 'paint', 'x': x, 'y': y, 'color': color }));
+        }
     }
 }
 

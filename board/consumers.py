@@ -22,6 +22,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
 
         if action == "paint":
             await self.handle_paint(data)
+        elif action == "erase":
+            await self.handle_erase(data)
 
     async def handle_paint(self, data):
         user = self.scope["user"]
@@ -54,12 +56,39 @@ class BoardConsumer(AsyncWebsocketConsumer):
             }
         )
 
+    async def handle_erase(self, data):
+        user = self.scope["user"]
+        
+        if user.is_authenticated and user.is_staff:
+            cooldown = 0
+        else:
+            cooldown = 1.0 if user.is_authenticated else 5.0
+
+        current_time = time.time()
+        if current_time - self.last_paint_time < cooldown:
+            await self.send(text_data=json.dumps({"error": f"Slow down! Cooldown is {cooldown}s."}))
+            return
+
+        self.last_paint_time = current_time
+
+        x = data.get("x")
+        y = data.get("y")
+
+        await self.delete_pixel(x, y)
+
     async def pixel_update(self, event):
         await self.send(text_data=json.dumps({
             "action": "paint",
             "x": event["x"],
             "y": event["y"],
             "color": event["color"]
+        }))
+
+    async def pixel_delete(self, event):
+        await self.send(text_data=json.dumps({
+            "action": "delete",
+            "x": event["x"],
+            "y": event["y"]
         }))
 
     @database_sync_to_async
@@ -76,3 +105,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_pixel(self, x, y, color):
         Pixel.objects.update_or_create(x=x, y=y, defaults={'color': color})
+
+    @database_sync_to_async
+    def delete_pixel(self, x, y):
+        Pixel.objects.filter(x=x, y=y).delete()
