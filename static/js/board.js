@@ -10,6 +10,51 @@ const chatSocket = new WebSocket('ws://' + window.location.host + '/ws/chat/');
 let pixelMap = {};
 let hoverPixel = null;
 
+let zoom = 1.0;
+const ZOOM_SPEED = 1.2;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 10.0;
+let panX = 0;
+let panY = 0;
+
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let panStart = { x: 0, y: 0 };
+let hasMoved = false;
+const DRAG_THRESHOLD = 5;
+
+canvas.style.transformOrigin = '0 0';
+canvas.style.imageRendering = 'pixelated';
+canvas.style.setProperty('-ms-interpolation-mode', 'nearest-neighbor');
+
+applyTransform();
+
+function applyTransform() {
+    if (Math.abs(zoom - 1.0) < 0.05) {
+        zoom = 1.0;
+        panX = 0;
+        panY = 0;
+    }
+
+    canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    document.getElementById('zoom-level').innerText = `${Math.round(zoom * 100)}%`;
+}
+
+document.getElementById('zoom-in').addEventListener('click', () => {
+    zoom = Math.min(MAX_ZOOM, zoom * ZOOM_SPEED);
+    applyTransform();
+});
+
+document.getElementById('zoom-out').addEventListener('click', () => {
+    let nextZoom = zoom / ZOOM_SPEED;
+    if (zoom > 1.0 && nextZoom < 1.0) {
+        zoom = 1.0;
+    } else {
+        zoom = Math.max(MIN_ZOOM, nextZoom);
+    }
+    applyTransform();
+});
+
 function drawGrid() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     ctx.strokeStyle = isDark ? GRID_OPACITY_DARK : GRID_OPACITY_LIGHT;
@@ -100,46 +145,100 @@ function handlePaintClick(clientX, clientY) {
     }
 }
 
-canvas.addEventListener('click', function (e) {
-    handlePaintClick(e.clientX, e.clientY);
+function startDrag(clientX, clientY) {
+    isDragging = true;
+    hasMoved = false;
+    dragStart = { x: clientX, y: clientY };
+    panStart = { x: panX, y: panY };
+}
+
+function moveDrag(clientX, clientY) {
+    if (!isDragging) return;
+    const dx = clientX - dragStart.x;
+    const dy = clientY - dragStart.y;
+
+    if (Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+        hasMoved = true;
+    }
+
+    if (hasMoved) {
+        panX = panStart.x + dx;
+        panY = panStart.y + dy;
+        applyTransform();
+    }
+}
+
+function endDrag(clientX, clientY) {
+    if (!isDragging) return;
+    isDragging = false;
+    if (!hasMoved) {
+        handlePaintClick(clientX, clientY);
+    }
+}
+
+canvas.addEventListener('mousedown', function (e) {
+    startDrag(e.clientX, e.clientY);
 });
 
-canvas.addEventListener('touchstart', function (e) {
-    if (e.touches.length === 1) {
-        handlePaintClick(e.touches[0].clientX, e.touches[0].clientY);
-        e.preventDefault();
-    }
-}, { passive: false });
-
 canvas.addEventListener('mousemove', function (e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    if (isDragging) {
+        moveDrag(e.clientX, e.clientY);
+    } else {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
 
-    const x = Math.floor(((e.clientX - rect.left) * scaleX) / PIXEL_SIZE);
-    const y = Math.floor(((e.clientY - rect.top) * scaleY) / PIXEL_SIZE);
+        const x = Math.floor(((e.clientX - rect.left) * scaleX) / PIXEL_SIZE);
+        const y = Math.floor(((e.clientY - rect.top) * scaleY) / PIXEL_SIZE);
 
-    if (x >= 0 && x < (canvas.width / PIXEL_SIZE) && y >= 0 && y < (canvas.height / PIXEL_SIZE)) {
-        if (!hoverPixel || hoverPixel.x !== x || hoverPixel.y !== y) {
-            hoverPixel = { x, y };
-            drawHoverPixel(x, y);
+        if (x >= 0 && x < (canvas.width / PIXEL_SIZE) && y >= 0 && y < (canvas.height / PIXEL_SIZE)) {
+            if (!hoverPixel || hoverPixel.x !== x || hoverPixel.y !== y) {
+                hoverPixel = { x, y };
+                drawHoverPixel(x, y);
+            }
+        } else if (hoverPixel) {
+            hoverPixel = null;
+            redrawAll();
         }
-    } else if (hoverPixel) {
-        hoverPixel = null;
-        redrawAll();
     }
+});
+
+canvas.addEventListener('mouseup', function (e) {
+    endDrag(e.clientX, e.clientY);
 });
 
 canvas.addEventListener('mouseleave', function () {
+    isDragging = false;
     if (hoverPixel) {
         hoverPixel = null;
         redrawAll();
     }
 });
 
+canvas.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 1) {
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+        e.preventDefault();
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 1 && isDragging) {
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+        e.preventDefault();
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', function (e) {
+    if (e.changedTouches.length === 1) {
+        endDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }
+});
+
 const chatBox = document.getElementById('chat-box');
 
 function appendChatMessage(username, message) {
+    if (!chatBox) return;
     const newMsg = document.createElement('div');
     newMsg.className = 'chat-message';
     newMsg.innerHTML = `<strong>${username}:</strong> ${message}`;
@@ -150,7 +249,7 @@ function appendChatMessage(username, message) {
 chatSocket.onmessage = function (e) {
     const data = JSON.parse(e.data);
     if (data.action === 'init') {
-        chatBox.innerHTML = '';
+        if (chatBox) chatBox.innerHTML = '';
         data.chats.forEach(c => appendChatMessage(c.username, c.message));
     } else if (data.error) {
         alert(data.error);

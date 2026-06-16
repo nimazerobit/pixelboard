@@ -32,6 +32,29 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.canvas-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+}
+
+.canvas-toolbar button {
+    width: 35px;
+    height: 35px;
+    background-color: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding-top: 4px;
+    cursor: pointer;
+}
+
+#zoom-level {
+    min-width: 45px;
+    text-align: center;
+}
+
 canvas {
     display: block;
     cursor: crosshair;
