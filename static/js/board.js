@@ -47,11 +47,9 @@ if (eraserBtn) {
     eraserBtn.addEventListener('click', () => {
         isErasing = !isErasing;
         if (isErasing) {
-            eraserBtn.style.backgroundColor = 'var(--primary-color)';
-            eraserBtn.style.color = '#fff';
+            eraserBtn.classList.add('active');
         } else {
-            eraserBtn.style.backgroundColor = 'transparent';
-            eraserBtn.style.color = 'var(--text-main)';
+            eraserBtn.classList.remove('active');
         }
     });
 }
@@ -61,8 +59,7 @@ if (colorPicker) {
     colorPicker.addEventListener('input', () => {
         isErasing = false;
         if (eraserBtn) {
-            eraserBtn.style.backgroundColor = 'transparent';
-            eraserBtn.style.color = 'var(--text-main)';
+            eraserBtn.classList.remove('active');
         }
     });
 }
@@ -79,6 +76,13 @@ document.getElementById('zoom-out').addEventListener('click', () => {
     } else {
         zoom = Math.max(MIN_ZOOM, nextZoom);
     }
+    applyTransform();
+});
+
+document.getElementById('zoom-reset').addEventListener('click', () => {
+    zoom = 1.0;
+    panX = 0;
+    panY = 0;
     applyTransform();
 });
 

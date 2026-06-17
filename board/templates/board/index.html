@@ -38,33 +38,56 @@
             <div class="canvas-wrapper">
                 <canvas id="canvas" width="500" height="500"></canvas>
             </div>
+
             <div class="controls">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="color" id="color-picker" value="#4f46e5" title="انتخاب رنگ">
-                    <button id="eraser-btn" type="button" class="btn" title="پاک‌کن" style="padding: 8px; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
-                    </button>
-                </div>
                 <span id="error-msg"></span>
-                <div class="canvas-toolbar">
-                    <button id="zoom-out" type="button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" x2="16.65" y1="21" y2="16.65" />
-                            <line x1="8" x2="14" y1="11" y2="11" />
-                        </svg>
-                    </button>
-                    <span id="zoom-level">100%</span>
-                    <button id="zoom-in" type="button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" x2="16.65" y1="21" y2="16.65" />
-                            <line x1="11" x2="11" y1="8" y2="14" />
-                            <line x1="8" x2="14" y1="11" y2="11" />
-                        </svg>
-                    </button>
+                <div class="canvas-dock">
+                    <div class="tool-group">
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="color-picker" value="#ffb703">
+                        </div>
+                        <button id="eraser-btn" type="button" class="dock-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path
+                                    d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" />
+                                <path d="m5.082 11.09 8.828 8.828" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="dock-divider"></div>
+
+                    <div class="zoom-group">
+                        <button id="zoom-out" type="button" class="dock-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" x2="16.65" y1="21" y2="16.65" />
+                                <line x1="8" x2="14" y1="11" y2="11" />
+                            </svg>
+                        </button>
+                        <span id="zoom-level">100%</span>
+                        <button id="zoom-in" type="button" class="dock-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" x2="16.65" y1="21" y2="16.65" />
+                                <line x1="11" x2="11" y1="8" y2="14" />
+                                <line x1="8" x2="14" y1="11" y2="11" />
+                            </svg>
+                        </button>
+                        <button id="zoom-reset" type="button" class="dock-btn reset-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                <path d="M3 3v5h5" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
