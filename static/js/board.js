@@ -165,15 +165,17 @@ function handlePaintClick(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-
     const x = Math.floor(((clientX - rect.left) * scaleX) / PIXEL_SIZE);
     const y = Math.floor(((clientY - rect.top) * scaleY) / PIXEL_SIZE);
-    const color = document.getElementById('color-picker').value;
 
     if (x >= 0 && x < (canvas.width / PIXEL_SIZE) && y >= 0 && y < (canvas.height / PIXEL_SIZE)) {
         if (isErasing) {
-            boardSocket.send(JSON.stringify({ 'action': 'erase', 'x': x, 'y': y }));
+            const key = `${x},${y}`;
+            if (pixelMap[key]) {
+                boardSocket.send(JSON.stringify({ 'action': 'erase', 'x': x, 'y': y }));
+            }
         } else {
+            const color = document.getElementById('color-picker').value;
             boardSocket.send(JSON.stringify({ 'action': 'paint', 'x': x, 'y': y, 'color': color }));
         }
     }
